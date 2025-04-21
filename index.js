@@ -409,6 +409,54 @@ app.post("/send-message", async (req, res) => {
 
 });
 
+// send text message to wa user via GET
+app.get("/send-message-get", async (req, res) => {
+    const pesankirim = req.query.mass;
+    const number = req.query.no;
+
+    let numberWA;
+    try {
+        if (!number || !pesankirim) {
+            res.status(400).json({
+                status: false,
+                response: 'Nomor WA atau pesan tidak disertakan!'
+            });
+        } else {
+            numberWA = '62' + number.substring(1) + "@s.whatsapp.net";
+            if (isConnected) {
+                const exists = await sock.onWhatsApp(numberWA);
+                if (exists?.jid || (exists && exists[0]?.jid)) {
+                    sock.sendMessage(exists.jid || exists[0].jid, { text: pesankirim })
+                        .then((result) => {
+                            res.status(200).json({
+                                status: true,
+                                response: result,
+                            });
+                        })
+                        .catch((err) => {
+                            res.status(500).json({
+                                status: false,
+                                response: err,
+                            });
+                        });
+                } else {
+                    res.status(404).json({
+                        status: false,
+                        response: `Nomor ${number} tidak terdaftar.`,
+                    });
+                }
+            } else {
+                res.status(500).json({
+                    status: false,
+                    response: `WhatsApp belum terhubung.`,
+                });
+            }
+        }
+    } catch (err) {
+        res.status(500).send(err);
+    }
+});
+
 // send group message
 app.post("/send-group-message", async (req, res) => {
     //console.log(req);
